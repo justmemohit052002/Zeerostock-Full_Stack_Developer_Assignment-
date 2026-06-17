@@ -107,27 +107,21 @@ export function StudentDetails({ studentId, onClose, onEdit, onAddMarks, toast }
                 <p style={{ margin: 0, fontSize: 17, fontWeight: 500 }}>{student.full_name}</p>
                 <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--color-text-secondary)" }}>{student.email}</p>
                 <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                  <Badge label={`Class: ${student.class}`} color="blue" />
-                  <Badge label={`Age: ${student.age}`} color="purple" />
-                  {avg !== null && <Badge label={`Avg: ${avg}%`} color={gradeColor(avg)} />}
+                  <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                    <Badge label={`Age: ${student.age}`} color="blue" />
+
+                    {avg !== null && (
+                      <Badge
+                        label={`Average: ${avg}%`}
+                        color={gradeColor(avg)}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {(student.phone || student.address) && (
-              <div style={{ marginBottom: 16, padding: "12px 14px", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 8 }}>
-                {student.phone && (
-                  <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 4 }}>
-                    <span style={{ fontWeight: 500, color: "var(--color-text-primary)" }}>Phone: </span>{student.phone}
-                  </div>
-                )}
-                {student.address && (
-                  <div style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
-                    <span style={{ fontWeight: 500, color: "var(--color-text-primary)" }}>Address: </span>{student.address}
-                  </div>
-                )}
-              </div>
-            )}
+
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <h3 style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>Marks ({student.marks?.length || 0})</h3>

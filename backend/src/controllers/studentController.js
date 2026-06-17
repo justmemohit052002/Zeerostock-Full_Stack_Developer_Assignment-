@@ -6,6 +6,7 @@ export const getAllStudents = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const search = (req.query.search || "").trim();
 
     if (page < 1 || limit < 1) {
       return res.status(400).json({
@@ -16,7 +17,8 @@ export const getAllStudents = async (req, res, next) => {
 
     const result = await studentService.getAllStudents(
       page,
-      limit
+      limit,
+      search
     );
 
     const totalPages = Math.ceil(
@@ -263,6 +265,85 @@ export const addMarks = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateMarks = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const { markId } = req.params;
+    const { subject, marks } = req.body;
+
+    if (!subject || marks === undefined) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Subject and marks are required",
+      });
+    }
+
+    if (marks < 0 || marks > 100) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Marks must be between 0 and 100",
+      });
+    }
+
+    const result =
+      await studentService.updateMarks(
+        markId,
+        subject,
+        marks
+      );
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Marks not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteMarks = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const { markId } = req.params;
+
+    const result =
+      await studentService.deleteMarks(
+        markId
+      );
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Marks not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Marks deleted successfully",
       data: result,
     });
   } catch (error) {

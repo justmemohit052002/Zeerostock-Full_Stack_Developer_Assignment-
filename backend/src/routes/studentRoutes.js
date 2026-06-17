@@ -14,4 +14,7 @@ router.delete("/:id", studentController.deleteStudent);
 
 router.post("/:id/marks", studentController.addMarks);
 
+router.put("/marks/:markId", studentController.updateMarks);
+router.delete("/marks/:markId", studentController.deleteMarks);
+
 export default router;

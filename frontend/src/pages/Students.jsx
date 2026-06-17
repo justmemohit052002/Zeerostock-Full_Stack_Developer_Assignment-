@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { StudentList } from "../components/StudentList";
 import { StudentForm } from "../components/StudentForm";
@@ -36,11 +35,12 @@ export default function Students() {
   const [selected, setSelected] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
-  const fetchStudents = useCallback(async () => {
+  // Accepts explicit searchVal/pageVal to avoid stale closure on search/page state
+  const fetchStudents = useCallback(async (searchVal = search, pageVal = page) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page, limit });
-      if (search) params.set("search", search);
+      const params = new URLSearchParams({ page: pageVal, limit });
+      if (searchVal) params.set("search", searchVal);
       const data = await api(`?${params}`);
       const list = data.data || [];
       const pagination = data.pagination || null;
@@ -57,10 +57,12 @@ export default function Students() {
     fetchStudents();
   }, [fetchStudents]);
 
+  // Pass fresh values directly to avoid stale state in the fetch call
   const handleSearch = (e) => {
     e.preventDefault();
     setSearch(searchInput);
     setPage(1);
+    fetchStudents(searchInput, 1);
   };
 
   const openAdd = () => {
@@ -182,6 +184,7 @@ export default function Students() {
                     setSearch("");
                     setSearchInput("");
                     setPage(1);
+                    fetchStudents("", 1);
                   }}
                   style={{ padding: "9px 12px", borderRadius: 8, border: "0.5px solid var(--color-border-secondary)", background: "none", cursor: "pointer", fontSize: 13, color: "var(--color-text-secondary)" }}
                 >
