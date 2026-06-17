@@ -3,7 +3,7 @@ import { Avatar } from "./ui/Avatar.jsx";
 import { Badge } from "./ui/Badge.jsx";
 import { Spinner } from "./ui/Spinner.jsx";
 
-const API_BASE = "http://localhost:5000/students";
+const API_BASE = "http://localhost:5000";
 const SUBJECTS = ["Math", "Science", "English", "History", "Computer Science", "Physics", "Chemistry", "Geography"];
 
 function api(path, options = {}) {
@@ -33,18 +33,21 @@ function gradeLabel(marks) {
   return "F";
 }
 
-export function StudentDetails({ studentId, onClose, onEdit, onAddMarks, toast }) {
+export function StudentDetails({ studentId, onClose, onEdit, toast }) {
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [marks, setMarks] = useState([{ subject: "", marks: "" }]);
   const [savingMarks, setSavingMarks] = useState(false);
   const [marksErrors, setMarksErrors] = useState([]);
   const [showMarksForm, setShowMarksForm] = useState(false);
+  const [editingMarkId, setEditingMarkId] = useState(null);
+  const [editingMarkData, setEditingMarkData] = useState({ subject: "", marks: "" });
+  const [deletingMarkId, setDeletingMarkId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api(`/${studentId}`);
+      const data = await api(`/students/${studentId}`);
       setStudent(data.data || data);
     } catch (err) {
       toast.error(err.message);
@@ -76,7 +79,7 @@ export function StudentDetails({ studentId, onClose, onEdit, onAddMarks, toast }
     setSavingMarks(true);
     try {
       for (const row of marks) {
-        await api(`/${student.id}/marks`, {
+        await api(`/students/${student.id}/marks`, {
           method: "POST",
           body: JSON.stringify({ subject: row.subject, marks: Number(row.marks) }),
         });
@@ -89,6 +92,47 @@ export function StudentDetails({ studentId, onClose, onEdit, onAddMarks, toast }
       toast.error(err.message);
     } finally {
       setSavingMarks(false);
+    }
+  };
+
+  const startEditMark = (mark) => {
+    setEditingMarkId(mark.id);
+    setEditingMarkData({ subject: mark.subject, marks: mark.marks });
+  };
+
+  const submitEditMark = async () => {
+    if (!editingMarkData.subject || !editingMarkData.marks || isNaN(editingMarkData.marks) || editingMarkData.marks < 0 || editingMarkData.marks > 100) {
+      toast.error("Invalid subject or marks");
+      return;
+    }
+    setSavingMarks(true);
+    try {
+      await api(`/students/marks/${editingMarkId}`, {
+        method: "PUT",
+        body: JSON.stringify({ subject: editingMarkData.subject, marks: Number(editingMarkData.marks) }),
+      });
+      toast.success("Mark updated successfully");
+      setEditingMarkId(null);
+      load();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSavingMarks(false);
+    }
+  };
+
+  const deleteMark = async (markId) => {
+    if (window.confirm("Are you sure you want to delete this mark?")) {
+      setDeletingMarkId(markId);
+      try {
+        await api(`/students/marks/${markId}`, { method: "DELETE" });
+        toast.success("Mark deleted successfully");
+        load();
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        setDeletingMarkId(null);
+      }
     }
   };
 
@@ -168,18 +212,64 @@ export function StudentDetails({ studentId, onClose, onEdit, onAddMarks, toast }
               </div>
             )}
 
+            {editingMarkId && (
+              <div style={{ marginBottom: 16, padding: 12, background: "var(--color-background-secondary)", borderRadius: 8, border: "0.5px solid var(--color-border-secondary)" }}>
+                <h4 style={{ margin: "0 0 12px 0", fontSize: 14, fontWeight: 500 }}>Edit Mark</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 8, marginBottom: 8 }}>
+                  <select
+                    value={editingMarkData.subject}
+                    onChange={(e) => setEditingMarkData({ ...editingMarkData, subject: e.target.value })}
+                    style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "0.5px solid var(--color-border-secondary)", fontSize: 14, background: "var(--color-background-primary)", color: "var(--color-text-primary)" }}
+                  >
+                    <option value="">Select subject…</option>
+                    {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    placeholder="Score"
+                    value={editingMarkData.marks}
+                    onChange={(e) => setEditingMarkData({ ...editingMarkData, marks: e.target.value })}
+                    style={{ padding: "9px 12px", borderRadius: 8, border: "0.5px solid var(--color-border-secondary)", fontSize: 14, background: "var(--color-background-primary)", color: "var(--color-text-primary)", boxSizing: "border-box" }}
+                  />
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => setEditingMarkId(null)} style={{ flex: 1, padding: "8px 12px", borderRadius: 6, border: "0.5px solid var(--color-border-secondary)", background: "none", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+                  <button onClick={submitEditMark} disabled={savingMarks} style={{ flex: 1, padding: "8px 12px", borderRadius: 6, border: "none", background: "#185fa5", color: "#fff", cursor: savingMarks ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 500, opacity: savingMarks ? 0.7 : 1 }}>{savingMarks ? "Updating…" : "Update"}</button>
+                </div>
+              </div>
+            )}
+
             {!student.marks?.length ? (
               <p style={{ color: "var(--color-text-secondary)", fontSize: 14, textAlign: "center", padding: "1rem" }}>No marks recorded yet</p>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {student.marks.map((m, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "var(--color-background-secondary)", borderRadius: 8 }}>
-                    <span style={{ fontSize: 14, color: "var(--color-text-primary)" }}>{m.subject}</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 15, fontWeight: 500 }}>{m.marks}</span>
-                      <Badge label={gradeLabel(m.marks)} color={gradeColor(m.marks)} />
+                  editingMarkId === m.id ? null : (
+                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "var(--color-background-secondary)", borderRadius: 8 }}>
+                      <span style={{ fontSize: 14, color: "var(--color-text-primary)" }}>{m.subject}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 15, fontWeight: 500 }}>{m.marks}</span>
+                        <Badge label={gradeLabel(m.marks)} color={gradeColor(m.marks)} />
+                        <button
+                          onClick={() => startEditMark(m)}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", fontSize: 14, padding: "2px 4px", marginLeft: 4 }}
+                          title="Edit mark"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          onClick={() => deleteMark(m.id)}
+                          disabled={deletingMarkId === m.id}
+                          style={{ background: "none", border: "none", cursor: deletingMarkId === m.id ? "not-allowed" : "pointer", color: "#e24b4a", fontSize: 14, padding: "2px 4px", opacity: deletingMarkId === m.id ? 0.5 : 1 }}
+                          title="Delete mark"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )
                 ))}
               </div>
             )}
